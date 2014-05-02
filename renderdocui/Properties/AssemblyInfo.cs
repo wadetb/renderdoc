@@ -61,4 +61,4 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyFileVersion("0.20.0.0")]
 
 // this can be replaced with the git hash of the commit being built from e.g. in a script
-[assembly: AssemblyInformationalVersion("NO_GIT_COMMIT_HASH_DEFINED")]
+[assembly: AssemblyInformationalVersion("c38affcded6aa9e8d4ff5e89754ca1b348234ca1-official")]
