@@ -226,7 +226,7 @@ bool IsDepthAndStencilFormat(VkFormat f)
   switch(f)
   {
     case VK_FORMAT_D16_UNORM_S8_UINT:
-    case VK_FORMAT_X8_D24_UNORM_PACK32:
+    case VK_FORMAT_D24_UNORM_S8_UINT:
     case VK_FORMAT_D32_SFLOAT_S8_UINT: return true;
     default: break;
   }
@@ -1543,7 +1543,7 @@ BlockShape GetBlockShape(VkFormat Format, uint32_t plane)
     default: RDCERR("Unrecognised Vulkan Format: %d", Format);
   }
 
-  return BlockShape();
+  return {1, 1, 1};
 }
 
 VkExtent2D GetPlaneShape(uint32_t Width, uint32_t Height, VkFormat Format, uint32_t plane)
@@ -2966,6 +2966,9 @@ void VkResourceRecord::MarkBufferImageCopyFrameReferenced(
 {
   MarkResourceFrameReferenced(img->GetResourceID(), imgRefType);
   MarkResourceFrameReferenced(img->baseResource, imgRefType);
+
+  if(IsDirtyFrameRef(imgRefType))
+    cmdInfo->dirtied.insert(img->GetResourceID());
 
   // mark buffer just as read
   MarkResourceFrameReferenced(buf->GetResourceID(), eFrameRef_Read);

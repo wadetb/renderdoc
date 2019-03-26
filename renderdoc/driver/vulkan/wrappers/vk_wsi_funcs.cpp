@@ -548,6 +548,8 @@ void WrappedVulkan::WrapAndProcessCreatedSwapchain(VkDevice device,
         // fill out image info so we track resource state barriers
         {
           SCOPED_LOCK(m_ImageLayoutsLock);
+          m_ImageLayouts[imid].format = pCreateInfo->imageFormat;
+
           m_ImageLayouts[imid].subresourceStates.clear();
           m_ImageLayouts[imid].subresourceStates.push_back(ImageRegionState(
               VK_QUEUE_FAMILY_IGNORED, range, UNKNOWN_PREV_IMG_LAYOUT, VK_IMAGE_LAYOUT_UNDEFINED));
@@ -660,6 +662,7 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
     // allowed (and ignored) pNext structs
     if(next->sType != VK_STRUCTURE_TYPE_DISPLAY_PRESENT_INFO_KHR &&
        next->sType != VK_STRUCTURE_TYPE_DEVICE_GROUP_PRESENT_INFO_KHR &&
+       next->sType != VK_STRUCTURE_TYPE_PRESENT_FRAME_TOKEN_GGP &&
        next->sType != VK_STRUCTURE_TYPE_PRESENT_REGIONS_KHR)
     {
       RDCWARN("Unsupported pNext structure in pPresentInfo: %s", ToStr(next->sType).c_str());
@@ -667,7 +670,6 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
 
     next = next->pNext;
   }
-  RDCASSERT(pPresentInfo->pNext == NULL);
 
   // TODO support multiple swapchains here
   VkResourceRecord *swaprecord = GetRecord(pPresentInfo->pSwapchains[0]);
