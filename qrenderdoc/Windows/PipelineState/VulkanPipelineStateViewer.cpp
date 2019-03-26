@@ -123,7 +123,8 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
   };
 
   QToolButton *viewPredicateBufferButtons[] = {
-      ui->predicateBufferViewButton, ui->csPredicateBufferViewButton,
+      ui->predicateBufferViewButton,
+      ui->csPredicateBufferViewButton,
   };
 
   RDTreeWidget *resources[] = {
@@ -224,8 +225,8 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
     res->setHeader(header);
 
     res->setColumns({QString(), tr("Set"), tr("Binding"), tr("Type"), tr("Resource"),
-                     tr("Contents"), tr("View"), tr("Go")});
-    header->setColumnStretchHints({-1, -1, 2, 2, 2, 4, 4, -1});
+                     tr("Contents"), tr("Go")});
+    header->setColumnStretchHints({-1, -1, 2, 2, 2, 8, -1});
 
     res->setHoverIconColumn(7, action, action_hover);
     res->setClearSelectionOnFocusLoss(true);
@@ -350,13 +351,26 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
 
   ui->pipeFlow->setStages(
       {
-          lit("VTX"), lit("VS"), lit("TCS"), lit("TES"), lit("GS"), lit("RS"), lit("FS"), lit("FB"),
+          lit("VTX"),
+          lit("VS"),
+          lit("TCS"),
+          lit("TES"),
+          lit("GS"),
+          lit("RS"),
+          lit("FS"),
+          lit("FB"),
           lit("CS"),
       },
       {
-          tr("Vertex Input"), tr("Vertex Shader"), tr("Tess. Control Shader"),
-          tr("Tess. Eval. Shader"), tr("Geometry Shader"), tr("Rasterizer"), tr("Fragment Shader"),
-          tr("Framebuffer Output"), tr("Compute Shader"),
+          tr("Vertex Input"),
+          tr("Vertex Shader"),
+          tr("Tess. Control Shader"),
+          tr("Tess. Eval. Shader"),
+          tr("Geometry Shader"),
+          tr("Rasterizer"),
+          tr("Fragment Shader"),
+          tr("Framebuffer Output"),
+          tr("Compute Shader"),
       });
 
   ui->pipeFlow->setIsolatedStage(8);    // compute shader isolated
@@ -835,10 +849,12 @@ QVariantList VulkanPipelineStateViewer::makeSampler(const QString &bindset, cons
       addressing += tr(" Explicit");
   }
 
+  addressing += QFormatStr(", %1%2").arg(filter).arg(lod);
+
   return {QString(),    bindset,
           slotname,     descriptor.immutableSampler ? tr("Immutable Sampler") : tr("Sampler"),
           obj,          addressing,
-          filter + lod, QString()};
+          QString()};
 }
 
 void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
@@ -1106,7 +1122,12 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
         if(!isbuf)
         {
           node = new RDTreeWidgetItem({
-              QString(), setname, slotname, ToQStr(bindType), ResourceId(), lit("-"), QString(),
+              QString(),
+              setname,
+              slotname,
+              ToQStr(bindType),
+              ResourceId(),
+              lit("-"),
               QString(),
           });
 
@@ -1115,10 +1136,13 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
         else
         {
           node = new RDTreeWidgetItem({
-              QString(), setname, slotname, ToQStr(bindType),
+              QString(),
+              setname,
+              slotname,
+              ToQStr(bindType),
               descriptorBind ? descriptorBind->resourceResourceId : ResourceId(),
-              tr("%1 bytes").arg(len),
-              QFormatStr("bytes %1").arg(formatByteRange(buf, descriptorBind)), QString(),
+              tr("%1 bytes, viewing %2").arg(len).arg(formatByteRange(buf, descriptorBind)),
+              QString(),
           });
 
           node->setTag(tag);
@@ -1133,9 +1157,14 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
       else if(bindType == BindType::ReadOnlyTBuffer || bindType == BindType::ReadWriteTBuffer)
       {
         node = new RDTreeWidgetItem({
-            QString(), setname, slotname, ToQStr(bindType),
-            descriptorBind ? descriptorBind->resourceResourceId : ResourceId(), format,
-            QFormatStr("Viewing bytes %1").arg(formatByteRange(buf, descriptorBind)), QString(),
+            QString(),
+            setname,
+            slotname,
+            ToQStr(bindType),
+            descriptorBind ? descriptorBind->resourceResourceId : ResourceId(),
+            format,
+            QFormatStr("bytes %1").arg(formatByteRange(buf, descriptorBind)),
+            QString(),
         });
 
         node->setTag(tag);
@@ -1151,7 +1180,12 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
         if(descriptorBind == NULL || descriptorBind->samplerResourceId == ResourceId())
         {
           node = new RDTreeWidgetItem({
-              QString(), setname, slotname, ToQStr(bindType), ResourceId(), lit("-"), QString(),
+              QString(),
+              setname,
+              slotname,
+              ToQStr(bindType),
+              ResourceId(),
+              lit("-"),
               QString(),
           });
 
@@ -1180,7 +1214,12 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
         if(descriptorBind == NULL || descriptorBind->resourceResourceId == ResourceId())
         {
           node = new RDTreeWidgetItem({
-              QString(), setname, slotname, ToQStr(bindType), ResourceId(), lit("-"), QString(),
+              QString(),
+              setname,
+              slotname,
+              ToQStr(bindType),
+              ResourceId(),
+              lit("-"),
               QString(),
           });
 
@@ -1220,9 +1259,16 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
           if(restype == TextureType::Texture2DMS || restype == TextureType::Texture2DMSArray)
             dim += QFormatStr(", %1x MSAA").arg(samples);
 
-          node = new RDTreeWidgetItem({
-              QString(), setname, slotname, typeName, descriptorBind->resourceResourceId, dim,
-              format, QString(),
+          dim += QFormatStr(", %1").arg(format);
+          
+		  node = new RDTreeWidgetItem({
+              QString(),
+              setname,
+              slotname,
+              typeName,
+              descriptorBind->resourceResourceId,
+              dim,
+              QString(),
           });
 
           node->setTag(tag);
@@ -1238,7 +1284,12 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
             if(descriptorBind == NULL || descriptorBind->samplerResourceId == ResourceId())
             {
               samplerNode = new RDTreeWidgetItem({
-                  QString(), setname, slotname, ToQStr(bindType), ResourceId(), lit("-"), QString(),
+                  QString(),
+                  setname,
+                  slotname,
+                  ToQStr(bindType),
+                  ResourceId(),
+                  lit("-"),
                   QString(),
               });
 
@@ -2454,9 +2505,8 @@ void VulkanPipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, i
 
     QString format;
 
-    if(stage->reflection &&
-       buf.bindPoint < (buf.rwRes ? stage->reflection->readWriteResources.size()
-                                  : stage->reflection->readOnlyResources.size()))
+    if(stage->reflection && buf.bindPoint < (buf.rwRes ? stage->reflection->readWriteResources.size()
+                                                       : stage->reflection->readOnlyResources.size()))
     {
       const ShaderResource &shaderRes = buf.rwRes
                                             ? stage->reflection->readWriteResources[buf.bindPoint]
@@ -2894,8 +2944,9 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
       }
     }
 
-    m_Common.exportHTMLTable(xml, {tr("Set"), tr("Bind"), tr("Buffer"), tr("Byte Offset"),
-                                   tr("Byte Size"), tr("Number of Variables"), tr("Bytes Needed")},
+    m_Common.exportHTMLTable(xml,
+                             {tr("Set"), tr("Bind"), tr("Buffer"), tr("Byte Offset"),
+                              tr("Byte Size"), tr("Number of Variables"), tr("Bytes Needed")},
                              rows);
   }
 
@@ -3003,8 +3054,9 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
     }
 
     m_Common.exportHTMLTable(
-        xml, {tr("Set"), tr("Bind"), tr("Buffer"), tr("Resource Type"), tr("Width"), tr("Height"),
-              tr("Depth"), tr("Array Size"), tr("Resource Format"), tr("View Parameters")},
+        xml,
+        {tr("Set"), tr("Bind"), tr("Buffer"), tr("Resource Type"), tr("Width"), tr("Height"),
+         tr("Depth"), tr("Array Size"), tr("Resource Format"), tr("View Parameters")},
         rows);
   }
 
@@ -3099,8 +3151,9 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
     }
 
     m_Common.exportHTMLTable(
-        xml, {tr("Set"), tr("Bind"), tr("Buffer"), tr("Resource Type"), tr("Width"), tr("Height"),
-              tr("Depth"), tr("Array Size"), tr("Resource Format"), tr("View Parameters")},
+        xml,
+        {tr("Set"), tr("Bind"), tr("Buffer"), tr("Resource Type"), tr("Width"), tr("Height"),
+         tr("Depth"), tr("Array Size"), tr("Resource Format"), tr("View Parameters")},
         rows);
   }
 }
@@ -3143,8 +3196,9 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
       i++;
     }
 
-    m_Common.exportHTMLTable(xml, {tr("Slot"), tr("Buffer"), tr("Byte Offset"), tr("Byte Length"),
-                                   tr("Counter Buffer"), tr("Counter Offset")},
+    m_Common.exportHTMLTable(xml,
+                             {tr("Slot"), tr("Buffer"), tr("Byte Offset"), tr("Byte Length"),
+                              tr("Counter Buffer"), tr("Counter Offset")},
                              rows);
   }
 }
@@ -3184,8 +3238,9 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
     xml.writeEndElement();
 
     m_Common.exportHTMLTable(
-        xml, {tr("Raster Samples"), tr("Sample-rate shading"), tr("Min Sample Shading Rate"),
-              tr("Sample Mask")},
+        xml,
+        {tr("Raster Samples"), tr("Sample-rate shading"), tr("Min Sample Shading Rate"),
+         tr("Sample Mask")},
         {msaa.rasterSamples, msaa.sampleShadingEnable ? tr("Yes") : tr("No"),
          Formatter::Format(msaa.minSampleShading), Formatter::Format(msaa.sampleMask, true)});
   }
@@ -3209,9 +3264,10 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
       i++;
     }
 
-    m_Common.exportHTMLTable(xml, {tr("Slot"), tr("X"), tr("Y"), tr("Width"), tr("Height"),
-                                   tr("Min Depth"), tr("Max Depth")},
-                             rows);
+    m_Common.exportHTMLTable(
+        xml,
+        {tr("Slot"), tr("X"), tr("Y"), tr("Width"), tr("Height"), tr("Min Depth"), tr("Max Depth")},
+        rows);
   }
 
   {
@@ -3254,7 +3310,8 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
       {
           cb.alphaToCoverageEnable ? tr("Yes") : tr("No"),
           cb.alphaToOneEnable ? tr("Yes") : tr("No"),
-          logic ? ToQStr(cb.blends[0].logicOperation) : tr("Disabled"), blendConst,
+          logic ? ToQStr(cb.blends[0].logicOperation) : tr("Disabled"),
+          blendConst,
       });
 
   xml.writeStartElement(lit("h3"));
@@ -3278,14 +3335,19 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
     i++;
   }
 
-  m_Common.exportHTMLTable(
-      xml,
-      {
-          tr("Slot"), tr("Blend Enable"), tr("Blend Source"), tr("Blend Destination"),
-          tr("Blend Operation"), tr("Alpha Blend Source"), tr("Alpha Blend Destination"),
-          tr("Alpha Blend Operation"), tr("Write Mask"),
-      },
-      rows);
+  m_Common.exportHTMLTable(xml,
+                           {
+                               tr("Slot"),
+                               tr("Blend Enable"),
+                               tr("Blend Source"),
+                               tr("Blend Destination"),
+                               tr("Blend Operation"),
+                               tr("Alpha Blend Source"),
+                               tr("Alpha Blend Destination"),
+                               tr("Alpha Blend Operation"),
+                               tr("Write Mask"),
+                           },
+                           rows);
 }
 
 void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::DepthStencil &ds)
@@ -3296,15 +3358,16 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
     xml.writeEndElement();
 
     m_Common.exportHTMLTable(
-        xml, {tr("Depth Test Enable"), tr("Depth Writes Enable"), tr("Depth Function"),
-              tr("Depth Bounds")},
+        xml,
+        {tr("Depth Test Enable"), tr("Depth Writes Enable"), tr("Depth Function"), tr("Depth Bounds")},
         {
-            ds.depthTestEnable ? tr("Yes") : tr("No"), ds.depthWriteEnable ? tr("Yes") : tr("No"),
-            ToQStr(ds.depthFunction), ds.depthBoundsEnable
-                                          ? QFormatStr("%1 - %2")
-                                                .arg(Formatter::Format(ds.minDepthBounds))
-                                                .arg(Formatter::Format(ds.maxDepthBounds))
-                                          : tr("Disabled"),
+            ds.depthTestEnable ? tr("Yes") : tr("No"),
+            ds.depthWriteEnable ? tr("Yes") : tr("No"),
+            ToQStr(ds.depthFunction),
+            ds.depthBoundsEnable ? QFormatStr("%1 - %2")
+                                       .arg(Formatter::Format(ds.minDepthBounds))
+                                       .arg(Formatter::Format(ds.maxDepthBounds))
+                                 : tr("Disabled"),
         });
   }
 
@@ -3318,18 +3381,24 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
       QList<QVariantList> rows;
 
       rows.push_back({
-          tr("Front"), Formatter::Format(ds.frontFace.reference, true),
+          tr("Front"),
+          Formatter::Format(ds.frontFace.reference, true),
           Formatter::Format(ds.frontFace.compareMask, true),
-          Formatter::Format(ds.frontFace.writeMask, true), ToQStr(ds.frontFace.function),
-          ToQStr(ds.frontFace.passOperation), ToQStr(ds.frontFace.failOperation),
+          Formatter::Format(ds.frontFace.writeMask, true),
+          ToQStr(ds.frontFace.function),
+          ToQStr(ds.frontFace.passOperation),
+          ToQStr(ds.frontFace.failOperation),
           ToQStr(ds.frontFace.depthFailOperation),
       });
 
       rows.push_back({
-          tr("back"), Formatter::Format(ds.backFace.reference, true),
+          tr("back"),
+          Formatter::Format(ds.backFace.reference, true),
           Formatter::Format(ds.backFace.compareMask, true),
-          Formatter::Format(ds.backFace.writeMask, true), ToQStr(ds.backFace.function),
-          ToQStr(ds.backFace.passOperation), ToQStr(ds.backFace.failOperation),
+          Formatter::Format(ds.backFace.writeMask, true),
+          ToQStr(ds.backFace.function),
+          ToQStr(ds.backFace.passOperation),
+          ToQStr(ds.backFace.failOperation),
           ToQStr(ds.backFace.depthFailOperation),
       });
 
@@ -3374,8 +3443,12 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
 
     m_Common.exportHTMLTable(xml,
                              {
-                                 tr("Slot"), tr("Image"), tr("First mip"), tr("Number of mips"),
-                                 tr("First array layer"), tr("Number of layers"),
+                                 tr("Slot"),
+                                 tr("Image"),
+                                 tr("First mip"),
+                                 tr("Number of mips"),
+                                 tr("First array layer"),
+                                 tr("Number of layers"),
                              },
                              rows);
   }
@@ -3462,7 +3535,9 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml,
   m_Common.exportHTMLTable(
       xml, {tr("Predicate Passing"), tr("Is Inverted"), tr("Buffer"), tr("Byte Offset")},
       {
-          cr.isPassing ? tr("Yes") : tr("No"), cr.isInverted ? tr("Yes") : tr("No"), bufferName,
+          cr.isPassing ? tr("Yes") : tr("No"),
+          cr.isInverted ? tr("Yes") : tr("No"),
+          bufferName,
           (qulonglong)cr.byteOffset,
       });
 }
