@@ -1398,8 +1398,12 @@ void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDeta
         length = descriptorBind->byteSize;
 
         BufferDescription *buf = m_Ctx.GetBuffer(descriptorBind->resourceResourceId);
+        bool wholeBuffer = false;
         if(buf && length == UINT64_MAX)
+        {
           length = buf->length - descriptorBind->byteOffset;
+          wholeBuffer = true;
+        }
 
         vecrange =
             QFormatStr("%1 - %2").arg(descriptorBind->byteOffset).arg(descriptorBind->byteOffset + length);
