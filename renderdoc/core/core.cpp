@@ -894,9 +894,7 @@ RDCFile *RenderDoc::CreateRDC(RDCDriver driver, uint32_t frameNum, const FramePi
     EncodePixelsPNG(outRaw, outPng);
   }
 
-  RDCASSERT(outPng.pixels != NULL);
-
-  ret->SetData(driver, ToStr(driver).c_str(), OSUtility::GetMachineIdent(), &outPng);
+  ret->SetData(driver, ToStr(driver).c_str(), OSUtility::GetMachineIdent(), fp.data ? &outPng : NULL);
 
   FileIO::CreateParentDirectory(m_CurrentLogFile);
 

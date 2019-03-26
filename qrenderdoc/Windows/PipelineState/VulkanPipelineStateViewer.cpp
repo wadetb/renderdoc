@@ -224,7 +224,7 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
     res->setHeader(header);
 
     res->setColumns({QString(), tr("Set"), tr("Binding"), tr("Type"), tr("Resource"),
-                     tr("Contents"), tr("cont.d"), tr("Go")});
+                     tr("Contents"), tr("Byte Range"), tr("Go")});
     header->setColumnStretchHints({-1, -1, 2, 2, 2, 4, 4, -1});
 
     res->setHoverIconColumn(7, action, action_hover);
@@ -1025,6 +1025,7 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
       BufferDescription *buf = NULL;
 
       uint64_t descriptorLen = descriptorBind ? descriptorBind->byteSize : 0;
+	  bool wholeBuffer = false;
 
       if(filledSlot && descriptorBind != NULL)
       {
@@ -1056,7 +1057,10 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
           restype = TextureType::Buffer;
 
           if(descriptorLen == UINT64_MAX)
+		  {
             descriptorLen = len - descriptorBind->byteOffset;
+			wholeBuffer = true;
+		  }
 
           tag = QVariant::fromValue(VulkanBufferTag(isrw, bindPoint, descriptorBind->viewFormat,
                                                     buf->resourceId, descriptorBind->byteOffset,
@@ -1089,8 +1093,10 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
         {
           QString range = lit("-");
           if(descriptorBind != NULL)
-            range =
-                QFormatStr("Viewing bytes %1 - %2").arg(descriptorBind->byteOffset).arg(descriptorLen);
+          range = QFormatStr("%1 - %2%3")
+			.arg(descriptorBind->byteOffset)
+			.arg(descriptorBind->byteOffset + descriptorLen)
+			.arg(descriptorLen == 0 ? tr(" (empty view)") : (wholeBuffer ? tr(" (whole buffer)") : lit("")));
 
           node = new RDTreeWidgetItem({
               QString(), setname, slotname, ToQStr(bindType),
@@ -1111,7 +1117,10 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
       {
         QString range = lit("-");
         if(descriptorBind != NULL)
-          range = QFormatStr("bytes %1 - %2").arg(descriptorBind->byteOffset).arg(descriptorLen);
+          range = QFormatStr("%1 - %2%3")
+			.arg(descriptorBind->byteOffset)
+			.arg(descriptorBind->byteOffset + descriptorLen)
+			.arg(descriptorLen == 0 ? tr(" (empty view)") : (wholeBuffer ? tr(" (whole buffer)") : lit("")));
 
         node = new RDTreeWidgetItem({
             QString(), setname, slotname, ToQStr(bindType),

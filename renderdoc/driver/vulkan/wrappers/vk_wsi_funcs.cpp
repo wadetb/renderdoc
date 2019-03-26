@@ -597,6 +597,15 @@ void WrappedVulkan::WrapAndProcessCreatedSwapchain(VkDevice device,
   }
   else
   {
+	RENDERDOC_WindowHandle wndHandle = ( RENDERDOC_WindowHandle )( pCreateInfo->surface );
+
+    {
+      SCOPED_LOCK( m_SwapLookupLock );
+      m_SwapLookup[wndHandle] = *pSwapChain;
+    }
+
+    RenderDoc::Inst().AddFrameCapturer( LayerDisp( m_Instance ), wndHandle, this );
+
     GetResourceManager()->AddLiveResource(id, *pSwapChain);
   }
 }

@@ -539,13 +539,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 
     RDCASSERT(record->Length > 0);
 
-    VkBufferCreateInfo bufInfo = {
-        VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-        NULL,
-        0,
-        0,
-        VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-    };
+    VkBufferCreateInfo bufInfo = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
 
     // we make the buffer concurrently accessible by all queue families to not invalidate the
     // contents of the memory we're reading back from.
@@ -565,25 +559,27 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
     // so we manually create & then just wrap.
     VkBuffer srcBuf, dstBuf;
 
-    bufInfo.size = datasize;
-    vkr = ObjDisp(d)->CreateBuffer(Unwrap(d), &bufInfo, NULL, &dstBuf);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
+	bufInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
     bufInfo.size = datasize;
     vkr = ObjDisp(d)->CreateBuffer(Unwrap(d), &bufInfo, NULL, &srcBuf);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+	bufInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+	bufInfo.size = datasize;
+    vkr = ObjDisp(d)->CreateBuffer(Unwrap(d), &bufInfo, NULL, &dstBuf);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
     GetResourceManager()->WrapResource(Unwrap(d), srcBuf);
     GetResourceManager()->WrapResource(Unwrap(d), dstBuf);
 
     MemoryAllocation readbackmem =
-        AllocateMemoryForResource(srcBuf, MemoryScope::InitialContents, MemoryType::Readback);
+        AllocateMemoryForResource(dstBuf, MemoryScope::InitialContents, MemoryType::Readback);
 
     // dummy request to keep the validation layers happy - the buffers are identical so the
     // requirements must be identical
     {
       VkMemoryRequirements mrq = {0};
-      ObjDisp(d)->GetBufferMemoryRequirements(Unwrap(d), Unwrap(dstBuf), &mrq);
+      ObjDisp(d)->GetBufferMemoryRequirements(Unwrap(d), Unwrap(srcBuf), &mrq);
     }
 
     vkr = ObjDisp(d)->BindBufferMemory(Unwrap(d), Unwrap(srcBuf), datamem, 0);

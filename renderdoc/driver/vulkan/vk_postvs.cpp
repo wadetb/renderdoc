@@ -2674,7 +2674,8 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId)
              ToStr(pipeInfo.shaders[stageIndex].patchData->outTopo).c_str());
     // deliberate fallthrough
     case Topology::TriangleList:
-    case Topology::TriangleStrip:
+	case Topology::TriangleStrip:
+	case Topology::PatchList:
       m_PostVS.Data[eventId].gsout.topo = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
       primitiveMultiplier = 3;
       break;
@@ -2700,7 +2701,7 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId)
   if(!ObjDisp(m_Device)->CmdBeginTransformFeedbackEXT)
   {
     RDCLOG(
-        "VK_EXT_transform_feedback_extension not available, can't fetch tessellation/geometry "
+        "VK_EXT_transform_feedback extension not available, can't fetch tessellation/geometry "
         "output");
     return;
   }

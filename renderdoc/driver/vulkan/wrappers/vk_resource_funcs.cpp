@@ -336,7 +336,10 @@ VkResult WrappedVulkan::vkAllocateMemory(VkDevice device, const VkMemoryAllocate
 {
   VkMemoryAllocateInfo info = *pAllocateInfo;
   if(IsCaptureMode(m_State))
-    info.memoryTypeIndex = GetRecord(device)->memIdxMap[info.memoryTypeIndex];
+  {
+   RDCASSERT(info.memoryTypeIndex < VK_MAX_MEMORY_TYPES, info.memoryTypeIndex);
+   info.memoryTypeIndex = GetRecord(device)->memIdxMap[info.memoryTypeIndex];
+  }
 
   {
     // we need to be able to allocate a buffer that covers the whole memory range. However
