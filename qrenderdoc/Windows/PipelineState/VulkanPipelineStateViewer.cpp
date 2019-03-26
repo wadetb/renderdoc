@@ -94,6 +94,30 @@ struct VulkanBufferTag
 
 Q_DECLARE_METATYPE(VulkanBufferTag);
 
+QString formatByteRange(const BufferDescription *buf, const VKPipe::BindingElement *descriptorBind)
+{
+  if(buf == NULL || descriptorBind == NULL)
+    return lit("-");
+  if(descriptorBind->byteSize == 0)
+  {
+    return QFormatStr("%1 - %2 (empty view)")
+        .arg(descriptorBind->byteOffset)
+        .arg(descriptorBind->byteOffset + descriptorBind->byteSize);
+  }
+  else if(descriptorBind->byteSize == UINT64_MAX)
+  {
+    return QFormatStr("%1 - %2 (whole buffer)")
+        .arg(descriptorBind->byteOffset)
+        .arg(descriptorBind->byteOffset + (buf->length - descriptorBind->byteOffset));
+  }
+  else
+  {
+    return QFormatStr("%1 - %2")
+        .arg(descriptorBind->byteOffset)
+        .arg(descriptorBind->byteOffset + descriptorBind->byteSize);
+  }
+}
+
 VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
                                                      PipelineStateViewer &common, QWidget *parent)
     : QFrame(parent), ui(new Ui::VulkanPipelineStateViewer), m_Ctx(ctx), m_Common(common)
@@ -1025,7 +1049,6 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
       BufferDescription *buf = NULL;
 
       uint64_t descriptorLen = descriptorBind ? descriptorBind->byteSize : 0;
-	  bool wholeBuffer = false;
 
       if(filledSlot && descriptorBind != NULL)
       {
@@ -1057,10 +1080,7 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
           restype = TextureType::Buffer;
 
           if(descriptorLen == UINT64_MAX)
-		  {
             descriptorLen = len - descriptorBind->byteOffset;
-			wholeBuffer = true;
-		  }
 
           tag = QVariant::fromValue(VulkanBufferTag(isrw, bindPoint, descriptorBind->viewFormat,
                                                     buf->resourceId, descriptorBind->byteOffset,
@@ -1091,17 +1111,10 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
         }
         else
         {
-          QString range = lit("-");
-          if(descriptorBind != NULL)
-          range = QFormatStr("%1 - %2%3")
-			.arg(descriptorBind->byteOffset)
-			.arg(descriptorBind->byteOffset + descriptorLen)
-			.arg(descriptorLen == 0 ? tr(" (empty view)") : (wholeBuffer ? tr(" (whole buffer)") : lit("")));
-
           node = new RDTreeWidgetItem({
               QString(), setname, slotname, ToQStr(bindType),
               descriptorBind ? descriptorBind->resourceResourceId : ResourceId(),
-              tr("%1 bytes").arg(len), range, QString(),
+              tr("%1 bytes").arg(len), formatByteRange(buf, descriptorBind), QString(),
           });
 
           node->setTag(tag);
@@ -1115,17 +1128,10 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
       }
       else if(bindType == BindType::ReadOnlyTBuffer || bindType == BindType::ReadWriteTBuffer)
       {
-        QString range = lit("-");
-        if(descriptorBind != NULL)
-          range = QFormatStr("%1 - %2%3")
-			.arg(descriptorBind->byteOffset)
-			.arg(descriptorBind->byteOffset + descriptorLen)
-			.arg(descriptorLen == 0 ? tr(" (empty view)") : (wholeBuffer ? tr(" (whole buffer)") : lit("")));
-
         node = new RDTreeWidgetItem({
             QString(), setname, slotname, ToQStr(bindType),
-            descriptorBind ? descriptorBind->resourceResourceId : ResourceId(), format, range,
-            QString(),
+            descriptorBind ? descriptorBind->resourceResourceId : ResourceId(), format,
+			formatByteRange(buf, descriptorBind), QString(),
         });
 
         node->setTag(tag);
@@ -1398,15 +1404,10 @@ void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDeta
         length = descriptorBind->byteSize;
 
         BufferDescription *buf = m_Ctx.GetBuffer(descriptorBind->resourceResourceId);
-        bool wholeBuffer = false;
         if(buf && length == UINT64_MAX)
-        {
           length = buf->length - descriptorBind->byteOffset;
-          wholeBuffer = true;
-        }
 
-        vecrange =
-            QFormatStr("%1 - %2").arg(descriptorBind->byteOffset).arg(descriptorBind->byteOffset + length);
+        vecrange = formatByteRange(buf, descriptorBind);
       }
 
       QString sizestr;
@@ -2978,15 +2979,8 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
           a = 0;
           format = lit("-");
 
-          uint64_t length = descriptorBind.byteSize;
-
-          if(length == UINT64_MAX)
-            length = buf->length - descriptorBind.byteOffset;
-
-          viewParams = tr("Byte Range: %1 - %2")
-                           .arg(descriptorBind.byteOffset)
-                           .arg(descriptorBind.byteOffset + length);
-        }
+          viewParams = tr("Byte Range: %1").arg(formatByteRange(buf, &descriptorBind));
+		}
 
         if(bind.type != BindType::Sampler)
           rows.push_back({setname, slotname, name, ToQStr(bind.type), (qulonglong)w, h, d, arr,
@@ -3092,14 +3086,7 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
           a = 0;
           format = lit("-");
 
-          uint64_t length = descriptorBind.byteSize;
-
-          if(length == UINT64_MAX)
-            length = buf->length - descriptorBind.byteOffset;
-
-          viewParams = tr("Byte Range: %1 - %2")
-                           .arg(descriptorBind.byteOffset)
-                           .arg(descriptorBind.byteOffset + length);
+          viewParams = tr("Byte Range: %1").arg(formatByteRange(buf, &descriptorBind));
         }
 
         rows.push_back({setname, slotname, name, ToQStr(bind.type), (qulonglong)w, h, d, arr,
