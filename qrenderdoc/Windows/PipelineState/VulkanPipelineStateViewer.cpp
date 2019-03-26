@@ -94,30 +94,6 @@ struct VulkanBufferTag
 
 Q_DECLARE_METATYPE(VulkanBufferTag);
 
-QString formatByteRange(const BufferDescription *buf, const VKPipe::BindingElement *descriptorBind)
-{
-  if(buf == NULL || descriptorBind == NULL)
-    return lit("-");
-  if(descriptorBind->byteSize == 0)
-  {
-    return QFormatStr("%1 - %2 (empty view)")
-        .arg(descriptorBind->byteOffset)
-        .arg(descriptorBind->byteOffset + descriptorBind->byteSize);
-  }
-  else if(descriptorBind->byteSize == UINT64_MAX)
-  {
-    return QFormatStr("%1 - %2 (whole buffer)")
-        .arg(descriptorBind->byteOffset)
-        .arg(descriptorBind->byteOffset + (buf->length - descriptorBind->byteOffset));
-  }
-  else
-  {
-    return QFormatStr("%1 - %2")
-        .arg(descriptorBind->byteOffset)
-        .arg(descriptorBind->byteOffset + descriptorBind->byteSize);
-  }
-}
-
 VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
                                                      PipelineStateViewer &common, QWidget *parent)
     : QFrame(parent), ui(new Ui::VulkanPipelineStateViewer), m_Ctx(ctx), m_Common(common)
@@ -248,7 +224,7 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
     res->setHeader(header);
 
     res->setColumns({QString(), tr("Set"), tr("Binding"), tr("Type"), tr("Resource"),
-                     tr("Contents"), tr("Byte Range"), tr("Go")});
+                     tr("Contents"), tr("View"), tr("Go")});
     header->setColumnStretchHints({-1, -1, 2, 2, 2, 4, 4, -1});
 
     res->setHoverIconColumn(7, action, action_hover);
@@ -601,6 +577,33 @@ bool VulkanPipelineStateViewer::showNode(bool usedSlot, bool filledSlot)
     return true;
 
   return false;
+}
+
+QString VulkanPipelineStateViewer::formatByteRange(const BufferDescription *buf,
+                                                   const VKPipe::BindingElement *descriptorBind)
+{
+  if(buf == NULL || descriptorBind == NULL)
+    return lit("-");
+  if(descriptorBind->byteSize == 0)
+  {
+    return QFormatStr("%1 - %2 %3")
+        .arg(descriptorBind->byteOffset)
+        .arg(descriptorBind->byteOffset)
+        .arg(tr("(empty view)"));
+  }
+  else if(descriptorBind->byteSize == UINT64_MAX)
+  {
+    return QFormatStr("%1 - %2 %3")
+        .arg(descriptorBind->byteOffset)
+        .arg(descriptorBind->byteOffset + (buf->length - descriptorBind->byteOffset))
+        .arg(tr("(whole size)"));
+  }
+  else
+  {
+    return QFormatStr("%1 - %2")
+        .arg(descriptorBind->byteOffset)
+        .arg(descriptorBind->byteOffset + descriptorBind->byteSize);
+  }
 }
 
 const VKPipe::Shader *VulkanPipelineStateViewer::stageForSender(QWidget *widget)
@@ -1114,7 +1117,8 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
           node = new RDTreeWidgetItem({
               QString(), setname, slotname, ToQStr(bindType),
               descriptorBind ? descriptorBind->resourceResourceId : ResourceId(),
-              tr("%1 bytes").arg(len), formatByteRange(buf, descriptorBind), QString(),
+              tr("%1 bytes").arg(len),
+              QFormatStr("bytes %1").arg(formatByteRange(buf, descriptorBind)), QString(),
           });
 
           node->setTag(tag);
@@ -1131,7 +1135,7 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
         node = new RDTreeWidgetItem({
             QString(), setname, slotname, ToQStr(bindType),
             descriptorBind ? descriptorBind->resourceResourceId : ResourceId(), format,
-			formatByteRange(buf, descriptorBind), QString(),
+            QFormatStr("Viewing bytes %1").arg(formatByteRange(buf, descriptorBind)), QString(),
         });
 
         node->setTag(tag);
@@ -2980,7 +2984,7 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
           format = lit("-");
 
           viewParams = tr("Byte Range: %1").arg(formatByteRange(buf, &descriptorBind));
-		}
+        }
 
         if(bind.type != BindType::Sampler)
           rows.push_back({setname, slotname, name, ToQStr(bind.type), (qulonglong)w, h, d, arr,
